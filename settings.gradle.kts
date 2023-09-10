@@ -1,1 +1,1 @@
-rootProject.name = "git-user-visor-stbar"
+rootProject.name = "git-user-stbar"
