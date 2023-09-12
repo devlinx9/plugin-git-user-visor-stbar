@@ -3,11 +3,14 @@ package co.com.devlinx9.gituserstatusbar;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectUtil;
 import com.intellij.openapi.roots.FileIndexFacade;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.NlsContexts;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.StatusBar;
 import com.intellij.openapi.wm.StatusBarWidget;
 import com.intellij.openapi.wm.impl.status.EditorBasedWidget;
@@ -22,6 +25,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -83,26 +87,14 @@ class CurrentGitUserStatusBarWidget extends EditorBasedWidget implements StatusB
             }
 
             if (!this.getProject().isDisposed()) {
-                Editor fileEditorManager = FileEditorManager.getInstance(this.getProject()).getSelectedTextEditor();
-                var mainProject = this.getProject();
-
-                if (fileEditorManager != null) {
-                    project = ApplicationManager.getApplication().runReadAction(new Computable<String>() {
-                        @Override
-                        public String compute() {
-                            PsiFile psiFile = PsiDocumentManager.getInstance(mainProject).getPsiFile(fileEditorManager.getDocument());
-                            return FileIndexFacade.getInstance(mainProject).getModuleForFile(psiFile.getVirtualFile()).getModuleFile().getParent().getCanonicalPath();
-                        }
-                    });
-                }
+                project = getPathFromEditorFile(project, this.getProject());
             }
-
-
             LOGGER.info(project);
             text += executeCommand(String.format("git -C %s config --get user.name", project)).concat(":");
             text += executeCommand(String.format("git -C %s config --get user.email", project));
 
         } catch (IOException | InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new GitUserVisorException(e);
         }
 
@@ -121,7 +113,7 @@ class CurrentGitUserStatusBarWidget extends EditorBasedWidget implements StatusB
         BufferedReader br = new BufferedReader(
                 new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
         while ((s = br.readLine()) != null) {
-            LOGGER.info("line: {}".concat(s));
+            LOGGER.log(Level.INFO, "line: {0}", s);
             text2 = s;
 
         }
@@ -129,10 +121,31 @@ class CurrentGitUserStatusBarWidget extends EditorBasedWidget implements StatusB
         process.waitFor();
         int result = process.exitValue();
         if (result != 0) {
-            LOGGER.info("git command result: ".concat(String.valueOf(result)));
+            LOGGER.log(Level.INFO, "git command result: {0}", String.valueOf(result));
         }
         process.destroy();
         return text2;
+    }
+
+    private String getPathFromEditorFile(String project, Project mainProject) {
+        Editor fileEditorManager = FileEditorManager.getInstance(this.getProject()).getSelectedTextEditor();
+
+        if (fileEditorManager != null) {
+            return ApplicationManager.getApplication().runReadAction((Computable<String>) () -> {
+                PsiFile psiFile = PsiDocumentManager.getInstance(mainProject).getPsiFile(fileEditorManager.getDocument());
+                if (psiFile != null) {
+                    Module moduleForFile = FileIndexFacade.getInstance(mainProject).getModuleForFile(psiFile.getVirtualFile());
+                    if (moduleForFile != null) {
+                        VirtualFile virtualFile = ProjectUtil.guessModuleDir(moduleForFile);
+                        if (virtualFile != null) {
+                            return virtualFile.getCanonicalPath();
+                        }
+                    }
+                }
+                return project;
+            });
+        }
+        return project;
     }
 
 }
