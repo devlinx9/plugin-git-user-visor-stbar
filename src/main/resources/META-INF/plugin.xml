@@ -14,7 +14,13 @@
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description><![CDATA[
-    The "Git User Visor" is a versatile plugin designed to enhance your Git experience by allowing you to see the actual user and email that is configured in your local repository
+    The "Git User Visor" is a versatile plugin designed to enhance your Git experience by allowing you to see the actual user and email that is configured in your local repository.
+
+
+    The plugin works using the current state of git config in the project or the current module for a certain open file in intellij, this allows you to see with what user are you pushing your code.
+
+
+    The usage of this plugin is very basic since is a visor of the current git user, you don't have to configure the plugin itself.
 
   ]]></description>
 
