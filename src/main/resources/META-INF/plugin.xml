@@ -40,6 +40,6 @@
     <extensions defaultExtensionNs="com.intellij">
         <statusBarWidgetFactory id="gitUserVisorWidget"
                                 implementation="co.com.devlinx9.gituserstatusbar.CurrentGitUserStatusBarWidgetFactory"
-                                order="after writeActionWidget"/>
+                                order="after vfsRefreshWidget"/>
     </extensions>
 </idea-plugin>

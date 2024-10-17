@@ -105,26 +105,26 @@ class CurrentGitUserStatusBarWidget extends EditorBasedWidget implements StatusB
 
     private String executeCommand(String command) throws IOException, InterruptedException {
         String s;
-        Process process;
-        process = Runtime.getRuntime()
-                .exec(command);
-        String text2 = "";
+        StringBuilder output = new StringBuilder();
+        ProcessBuilder processBuilder = new ProcessBuilder("/bin/sh", "-c", command); // Use "/bin/sh -c" for shell commands
+        processBuilder.redirectErrorStream(true); // Redirect error stream to standard output
 
-        BufferedReader br = new BufferedReader(
-                new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
-        while ((s = br.readLine()) != null) {
-            LOGGER.log(Level.INFO, "line: {0}", s);
-            text2 = s;
+        Process process = processBuilder.start();
 
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+            while ((s = br.readLine()) != null) {
+                LOGGER.log(Level.INFO, "line: {0}", s);
+                output.append(s).append("\n"); // Append the output to the StringBuilder
+            }
         }
-        br.close();
-        process.waitFor();
-        int result = process.exitValue();
+
+        int result = process.waitFor(); // Wait for the process to complete
         if (result != 0) {
-            LOGGER.log(Level.INFO, "git command result: {0}", String.valueOf(result));
+            LOGGER.log(Level.INFO, "command result: {0}", result);
         }
+
         process.destroy();
-        return text2;
+        return output.toString().trim(); // Return the full output as a single string
     }
 
     private String getPathFromEditorFile(String project, Project mainProject) {
